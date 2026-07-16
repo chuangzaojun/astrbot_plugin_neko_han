@@ -20,7 +20,7 @@ class MyPlugin(Star):
         message_str = event.message_str # 用户发的纯文本消息字符串
         message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
         logger.info(message_chain)
-        message_chain = MessageChain().at(user_id).message("喵喵喵～我是 Neko_Han，由 Stalyx (chuangzaojun) 开发的聊天机器人喵～")
+        message_chain = MessageChain().at(user_name, user_id).message("喵喵喵～我是 Neko_Han，由 Stalyx (chuangzaojun) 开发的聊天机器人喵～")
         yield event.plain_result(message_chain) # 发送一条纯文本消息
 
     async def terminate(self):
