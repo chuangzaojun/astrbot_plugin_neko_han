@@ -1,6 +1,7 @@
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
+from astrbot.api.all import MessageChain
 
 @register("helloworld", "YourName", "一个简单的 Hello World 插件", "1.0.0")
 class MyPlugin(Star):
@@ -15,10 +16,12 @@ class MyPlugin(Star):
     async def miao(self, event: AstrMessageEvent):
         """向用户介绍自己的指令喵""" # 这是 handler 的描述，将会被解析方便用户了解插件内容。建议填写。
         user_name = event.get_sender_name()
+        user_id = event.get_sender_id()
         message_str = event.message_str # 用户发的纯文本消息字符串
         message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
         logger.info(message_chain)
-        yield event.plain_result(f"喵喵喵～@{user_name}。我是 Neko_Han，由 Stalyx (chuangzaojun) 开发的聊天机器人喵～") # 发送一条纯文本消息
+        message_chain = MessageChain().at(user_id).message("喵喵喵～我是 Neko_Han，由 Stalyx (chuangzaojun) 开发的聊天机器人喵～")
+        yield event.plain_result(message_chain) # 发送一条纯文本消息
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
