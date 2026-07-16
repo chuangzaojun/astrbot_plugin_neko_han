@@ -18,7 +18,7 @@ class MyPlugin(Star):
         message_str = event.message_str # 用户发的纯文本消息字符串
         message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
         logger.info(message_chain)
-        yield event.plain_result(f"喵喵喵～{user_name}。我是 Neko_Han，由 Stalyx (chuangzaojun) 开发的聊天机器人喵～") # 发送一条纯文本消息
+        yield event.plain_result(f"喵喵喵～@{user_name}。我是 Neko_Han，由 Stalyx (chuangzaojun) 开发的聊天机器人喵～") # 发送一条纯文本消息
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
