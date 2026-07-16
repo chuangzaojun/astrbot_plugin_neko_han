@@ -82,6 +82,9 @@ class NekoHan(Star):
         user_id = event.get_sender_id()
         proposing_name = params[0]
         my_neko_info = await self.collection.find_one({"user_id": user_id})
+        if my_neko_info is None:
+            yield event.plain_result('请先创建你的猫娘')
+            return
         proposing_neko_info = await self.collection.find_one({"neko_name": proposing_name})
         if (proposing_neko_info is None) or (proposing_neko_info.get("proposing_name") != my_neko_info["neko_name"]):
             yield event.plain_result('未找到求婚对象')
@@ -90,6 +93,22 @@ class NekoHan(Star):
         await self.collection.update_one(proposing_neko_info, { "$set": {"wife": my_neko_info["neko_name"]} })
         await self.collection.update_one(proposing_neko_info, { "$unset": {"proposing_name": ""} })
         yield event.plain_result(my_neko_info["neko_name"] + ' x ' + proposing_neko_info["neko_name"] + ' 百年好合喵')
+
+    @filter.command("离婚")
+    async def divorce(self, event: AstrMessageEvent):
+        user_id = event.get_sender_id()
+        my_neko_info = await self.collection.find_one({"user_id": user_id})
+        if my_neko_info is None:
+            yield event.plain_result('请先创建你的猫娘')
+            return
+        if my_neko_info.get("wife") is None:
+            yield event.plain_result('你的猫娘单身喵')
+            return
+        wife_name = my_neko_info["wife"]
+        wife_info = await self.collection.find_one({"neko_name" :wife_name})
+        await self.collection.update_one(my_neko_info, { "$unset": {"wife": ""} })
+        await self.collection.update_one(wife_info, { "$unset": {"wife": ""} })
+        yield event.plain_result(my_neko_info["neko_name"] + " 和 " + wife_name + " 离婚喵")
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
