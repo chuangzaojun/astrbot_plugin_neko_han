@@ -1,7 +1,6 @@
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
+from astrbot.api.event import MessageChain, filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
-from astrbot.api.all import MessageChain
 
 @register("helloworld", "YourName", "一个简单的 Hello World 插件", "1.0.0")
 class MyPlugin(Star):
@@ -21,7 +20,7 @@ class MyPlugin(Star):
         message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
         logger.info(message_chain)
         message_chain = MessageChain().at(user_name, user_id).message("喵喵喵～我是 Neko_Han，由 Stalyx (chuangzaojun) 开发的聊天机器人喵～")
-        yield event.chain_result(message_chain) # 发送一条纯文本消息
+        yield event.chain_result(message_chain)
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
