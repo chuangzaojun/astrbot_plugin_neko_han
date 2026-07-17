@@ -1,14 +1,23 @@
-# astrbot-plugin-helloworld
+# Neko_Han — 猫娘养成插件
 
-AstrBot 插件模板 / A template plugin for AstrBot plugin feature
+一个基于 AstrBot 的互动插件，让你在聊天群中**创建、养成自己的猫娘**，并与其他猫娘**结婚、离婚**，体验有趣的猫娘社交！
 
-> [!NOTE]
-> This repo is just a template of [AstrBot](https://github.com/AstrBotDevs/AstrBot) Plugin.
-> 
-> [AstrBot](https://github.com/AstrBotDevs/AstrBot) is an agentic assistant for both personal and group conversations. It can be deployed across dozens of mainstream instant messaging platforms, including QQ, Telegram, Feishu, DingTalk, Slack, LINE, Discord, Matrix, etc. In addition, it provides a reliable and extensible conversational AI infrastructure for individuals, developers, and teams. Whether you need a personal AI companion, an intelligent customer support agent, an automation assistant, or an enterprise knowledge base, AstrBot enables you to quickly build AI applications directly within your existing messaging workflows.
+---
 
-# Supports
+## ✨ 功能特性
 
-- [AstrBot Repo](https://github.com/AstrBotDevs/AstrBot)
-- [AstrBot Plugin Development Docs (Chinese)](https://docs.astrbot.app/dev/star/plugin-new.html)
-- [AstrBot Plugin Development Docs (English)](https://docs.astrbot.app/en/dev/star/plugin-new.html)
+- 🐾 **创建独一无二的猫娘**：每个用户只能拥有一个猫娘，名字全群唯一。
+- 💍 **求婚 & 结婚**：猫娘之间可以求婚、接受求婚，成为伴侣。
+- 💔 **离婚**：主动解除婚姻关系。
+- 🐱 **基础互动**：简单的猫娘对话回应。
+- 🛡️ **健壮的关系存储**：所有关系通过用户 ID 绑定，不受改名影响。
+- 📋 **帮助系统**：输入 `/猫娘帮助` 即可查看所有指令。
+
+---
+
+## 📦 安装
+
+1. 将本插件文件放入 AstrBot 的 `plugins` 目录。
+2. 确保已安装 `motor` 库：
+   ```bash
+   pip install motor
