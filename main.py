@@ -173,7 +173,7 @@ class NekoHan(Star):
             logger.error(f"/创建猫娘 错误:\n{traceback.format_exc()}")
             yield event.plain_result("喵～服务器好像出了一点小问题，等等再试试喵~")
 
-    @filter.command("修改名字")
+    @filter.command("改名")
     async def rename_neko(self, event: AstrMessageEvent):
         try:
             args = event.message_str.split()[1:]
