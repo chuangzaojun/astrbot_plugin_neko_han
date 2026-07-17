@@ -4,48 +4,23 @@ import random
 from datetime import timezone, timedelta
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
-from astrbot.api import logger
+from astrbot.api import logger, AstrBotConfig
 import astrbot.api.message_components as Comp
 import motor.motor_asyncio
 
-# ---------- 常量 ----------
-DEFAULT_STAMINA = 1000
-LABOR_HALL_SIZE = 10
-REFRESH_INTERVAL = 3600  # 1小时（秒）
-
-# 劳务任务名称及对应emoji库
-LABOR_TASKS = [
-    {"name": "捕鱼", "emoji": "🐟"},
-    {"name": "抓老鼠", "emoji": "🐭"},
-    {"name": "看家", "emoji": "🏠"},
-    {"name": "种猫草", "emoji": "🌿"},
-    {"name": "陪玩", "emoji": "🎾"},
-    {"name": "巡逻", "emoji": "🚔"},
-    {"name": "带娃", "emoji": "👶"},
-    {"name": "跑腿", "emoji": "💨"},
-    {"name": "捉蝴蝶", "emoji": "🦋"},
-    {"name": "采蜂蜜", "emoji": "🍯"},
-    {"name": "打扫", "emoji": "🧹"},
-    {"name": "做饭", "emoji": "🍳"},
-    {"name": "写作业", "emoji": "📝"},
-    {"name": "打妖怪", "emoji": "👾"},
-    {"name": "修电器", "emoji": "🔧"},
-    {"name": "送快递", "emoji": "📦"},
-    {"name": "浇花", "emoji": "🌸"},
-    {"name": "搬砖", "emoji": "🧱"},
-    {"name": "铲屎", "emoji": "💩"},
-    {"name": "梳毛", "emoji": "🪥"}
-]
+# ---------- 原硬编码常量已移除，全部改用配置 ----------
 
 @register("neko_han", "Neko_Han", "喵喵喵", "0.3")
 class NekoHan(Star):
-    def __init__(self, context: Context):
+    def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
-        self.client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017")
-        self.db = self.client["neko-han"]
-        self.collection = self.db["nekoes"]
-        self.labor_collection = self.db["labor_hall"]
-        self.duel_collection = self.db["duel_invites"]        # 决斗邀请集合
+        self.config = config
+        # 使用配置中的数据库连接信息
+        self.client = motor.motor_asyncio.AsyncIOMotorClient(self.config["MONGO_URI"])
+        self.db = self.client[self.config["DB_NAME"]]
+        self.collection = self.db[self.config["NEKO_COLLECTION"]]
+        self.labor_collection = self.db[self.config["LABOR_COLLECTION"]]
+        self.duel_collection = self.db[self.config["DUEL_COLLECTION"]]
         self.last_refresh_time = None
 
     async def initialize(self):
@@ -63,31 +38,31 @@ class NekoHan(Star):
         if neko_doc is None:
             neko_doc = await self.get_neko(user_id)
             if neko_doc is None:
-                return False, DEFAULT_STAMINA
+                return False, self.config["DEFAULT_STAMINA"]
 
         today_str = datetime.date.today().isoformat()
         last_date = neko_doc.get("last_stamina_date", "")
         if last_date != today_str:
             await self.collection.update_one(
                 {"user_id": user_id},
-                {"$set": {"stamina": DEFAULT_STAMINA, "last_stamina_date": today_str}}
+                {"$set": {"stamina": self.config["DEFAULT_STAMINA"], "last_stamina_date": today_str}}
             )
-            return True, DEFAULT_STAMINA
-        return False, neko_doc.get("stamina", DEFAULT_STAMINA)
+            return True, self.config["DEFAULT_STAMINA"]
+        return False, neko_doc.get("stamina", self.config["DEFAULT_STAMINA"])
 
     async def refresh_labor_hall(self):
         now = datetime.datetime.now(timezone.utc)
-        if self.last_refresh_time and (now - self.last_refresh_time).total_seconds() < REFRESH_INTERVAL:
+        if self.last_refresh_time and (now - self.last_refresh_time).total_seconds() < self.config["LABOR_REFRESH_INTERVAL"]:
             return
 
         await self.labor_collection.delete_many({"status": {"$ne": "in_progress"}})
 
         new_tasks = []
-        for _ in range(LABOR_HALL_SIZE):
+        for _ in range(self.config["LABOR_HALL_SIZE"]):
             cost = random.randint(50, 200)
             duration = random.randint(5 * 60, 30 * 60)  # 5~30分钟（秒）
             reward = cost * 2 + random.randint(0, cost // 2)
-            task_desc = random.choice(LABOR_TASKS)
+            task_desc = random.choice(self.config["LABOR_TASKS"])
             new_tasks.append({
                 "name": task_desc["name"],
                 "emoji": task_desc["emoji"],
@@ -164,8 +139,8 @@ class NekoHan(Star):
             await self.collection.insert_one({
                 "user_id": user_id,
                 "neko_name": neko_name,
-                "maotiao": 100,
-                "stamina": DEFAULT_STAMINA,
+                "maotiao": self.config["INITIAL_MAOTIAO"],
+                "stamina": self.config["DEFAULT_STAMINA"],
                 "last_stamina_date": ""
             })
             yield event.plain_result(f"{neko_name} 现在是你的猫娘喵～")
@@ -220,12 +195,12 @@ class NekoHan(Star):
 
             neko_name = my_neko["neko_name"]
             maotiao = my_neko.get("maotiao", 0)
-            stamina = my_neko.get("stamina", DEFAULT_STAMINA)
+            stamina = my_neko.get("stamina", self.config["DEFAULT_STAMINA"])
 
             status_lines = [
                 f"🐱 {neko_name} 的仪表盘",
                 f"🐾 猫条余额：{maotiao} 根",
-                f"⚡ 体力：{stamina}/{DEFAULT_STAMINA}"
+                f"⚡ 体力：{stamina}/{self.config['DEFAULT_STAMINA']}"
             ]
 
             # 婚恋状态
@@ -280,7 +255,7 @@ class NekoHan(Star):
                         secs = int(remaining.total_seconds() % 60)
                         remaining_str = f"{mins}分{secs}秒"
                     status_lines.append(
-                        f"{i}. {emoji}{name} | 消耗{cost}体 | 🐾{reward}猫条 | 剩余：{remaining_str}"
+                        f"{i}. {emoji}{name} | 消耗{cost}体力 | 🐾{reward}猫条 | 剩余：{remaining_str}"
                     )
                 status_lines.append("（输入 /取消劳务 序号 可取消，体力不返还）")
             else:
@@ -465,7 +440,7 @@ class NekoHan(Star):
                 yield event.plain_result(f"{neko['neko_name']} 今天已经签到过了喵～明天再来吧！")
                 return
 
-            reward = random.randint(10, 50)
+            reward = random.randint(self.config["SIGN_REWARD_MIN"], self.config["SIGN_REWARD_MAX"])
             new_balance = neko.get("maotiao", 0) + reward
 
             await self.collection.update_one(
@@ -501,8 +476,8 @@ class NekoHan(Star):
             if bet <= 0:
                 yield event.plain_result("赌注必须大于0喵～")
                 return
-            if not (0 <= guess <= 100):
-                yield event.plain_result("猜测数字需要在0~100之间喵～")
+            if not (self.config["DUEL_GUESS_MIN"] <= guess <= self.config["DUEL_GUESS_MAX"]):
+                yield event.plain_result(f"猜测数字需要在{self.config['DUEL_GUESS_MIN']}~{self.config['DUEL_GUESS_MAX']}之间喵～")
                 return
 
             user_id = event.get_sender_id()
@@ -564,8 +539,8 @@ class NekoHan(Star):
             except ValueError:
                 yield event.plain_result("猜测数字必须是整数喵～")
                 return
-            if not (0 <= guess <= 100):
-                yield event.plain_result("猜测数字需要在0~100之间喵～")
+            if not (self.config["DUEL_GUESS_MIN"] <= guess <= self.config["DUEL_GUESS_MAX"]):
+                yield event.plain_result(f"猜测数字需要在{self.config['DUEL_GUESS_MIN']}~{self.config['DUEL_GUESS_MAX']}之间喵～")
                 return
 
             user_id = event.get_sender_id()
@@ -595,8 +570,8 @@ class NekoHan(Star):
                 yield event.plain_result(f"{my_neko['neko_name']} 的猫条不足，无法接战，需要 {bet} 根猫条喵～")
                 return
 
-            # 生成系统随机数
-            secret = random.randint(0, 100)
+            # 生成系统随机数（范围包含所有可能猜测值）
+            secret = random.randint(self.config["DUEL_GUESS_MIN"] - 1, self.config["DUEL_GUESS_MAX"])
             inviter_guess = invite["inviter_guess"]
             # 计算差值
             diff1 = abs(inviter_guess - secret)
@@ -613,7 +588,6 @@ class NekoHan(Star):
                 winner_guess = guess
                 loser_guess = inviter_guess
             else:  # 平局
-                # 赌注不转移，删除邀请
                 await self.duel_collection.delete_one({"_id": invite["_id"]})
                 yield event.plain_result(
                     f"⚔️ 决斗结果：平局！系统数字 {secret}\n"
@@ -717,7 +691,7 @@ class NekoHan(Star):
                 return
 
             await self.refresh_labor_hall()
-            tasks = await self.labor_collection.find({"status": "available"}).to_list(length=LABOR_HALL_SIZE)
+            tasks = await self.labor_collection.find({"status": "available"}).to_list(length=self.config["LABOR_HALL_SIZE"])
 
             if not tasks:
                 yield event.plain_result(f"{neko['neko_name']}，猫力资源市场暂时没有可接的劳务喵～等下次刷新吧！")
@@ -764,7 +738,7 @@ class NekoHan(Star):
                 neko["stamina"] = stamina
 
             await self.refresh_labor_hall()
-            tasks = await self.labor_collection.find({"status": "available"}).to_list(length=LABOR_HALL_SIZE)
+            tasks = await self.labor_collection.find({"status": "available"}).to_list(length=self.config["LABOR_HALL_SIZE"])
 
             if index < 1 or index > len(tasks):
                 yield event.plain_result("序号超出范围喵～请重新选择")
@@ -886,36 +860,42 @@ class NekoHan(Star):
 
     @filter.command("你能做什么")
     async def help(self, event: AstrMessageEvent):
-        help_text = (
-            "🐱 **Neko_Han 猫娘养成系统帮助**\n\n"
-            "👋 基础互动\n"
-            "  • `/喵` — 让 Neko_Han 和你打个招呼\n"
-            "  • `/你是猫娘么` — 问它是不是猫娘\n\n"
-            "🐈 猫娘养成\n"
-            "  • `/创建猫娘 <名字>` — 创建属于你的猫娘（名字须无空格）\n"
-            "  • `/修改名字 <新名字>` — 修改你的猫娘名字\n"
-            "  • `/仪表盘` — 查看猫娘状态（名字、猫条、体力、婚恋、劳务、决斗邀请）\n\n"
-            "💰 经济系统\n"
-            "  • `/签到` — 每日签到，随机获得 10~50 猫条\n"
-            "  • `/转账 <猫娘名字> <数量>` — 向其他猫娘转账猫条\n\n"
-            "🏗️ 劳动系统\n"
-            "  • `/猫力资源市场` — 查看可接劳务任务（每小时刷新）\n"
-            "  • `/接取劳务 <序号>` — 接取任务，消耗体力，完成后得猫条\n"
-            "  • `/我的劳务` — 查看进行中的任务\n"
-            "  • `/取消劳务 <序号>` — 取消任务（体力不返还）\n\n"
-            "💕 婚恋系统\n"
-            "  • `/求婚 <猫娘名字>` — 让你的猫娘向其他猫娘求婚\n"
-            "  • `/接受求婚 <猫娘名字>` — 接受对方的求婚\n"
-            "  • `/离婚` — 与当前配偶离婚\n\n"
-            "⚔️ 决斗系统\n"
-            "  • `/决斗 <猫娘名字> <赌注> <你的猜测>` — 向其他猫娘发起决斗\n"
-            "  • `/接受决斗 <发起者猫娘名字> <你的猜测>` — 应战\n"
-            "  • `/拒绝决斗 <发起者猫娘名字>` — 拒绝决斗\n"
-            "  • `/决斗列表` — 查看收到的决斗邀请\n\n"
-            "❓ 帮助\n"
-            "  • `/你能做什么` — 显示本帮助信息\n\n"
-            "💡 提示：所有猫娘关系通过用户 ID 绑定，体力每日重置，劳动大厅每小时刷新喵~"
-        )
+        help_text = f"""🐱 **Neko_Han 猫娘养成系统帮助**
+
+👋 基础互动
+  • `/喵` — 让 Neko_Han 和你打个招呼
+  • `/你是猫娘么` — 问它是不是猫娘
+
+🐈 猫娘养成
+  • `/创建猫娘 <名字>` — 创建属于你的猫娘（名字须无空格）
+  • `/修改名字 <新名字>` — 修改你的猫娘名字
+  • `/仪表盘` — 查看猫娘状态（名字、猫条、体力、婚恋、劳务、决斗邀请）
+
+💰 经济系统
+  • `/签到` — 每日签到，随机获得 {self.config['SIGN_REWARD_MIN']}~{self.config['SIGN_REWARD_MAX']} 猫条
+  • `/转账 <猫娘名字> <数量>` — 向其他猫娘转账猫条
+
+🏗️ 劳动系统
+  • `/猫力资源市场` — 查看可接劳务任务（每小时刷新）
+  • `/接取劳务 <序号>` — 接取任务，消耗体力，完成后得猫条
+  • `/我的劳务` — 查看进行中的任务
+  • `/取消劳务 <序号>` — 取消任务（体力不返还）
+
+💕 婚恋系统
+  • `/求婚 <猫娘名字>` — 让你的猫娘向其他猫娘求婚
+  • `/接受求婚 <猫娘名字>` — 接受对方的求婚
+  • `/离婚` — 与当前配偶离婚
+
+⚔️ 决斗系统
+  • `/决斗 <猫娘名字> <赌注> <你的猜测>` — 向其他猫娘发起决斗
+  • `/接受决斗 <发起者猫娘名字> <你的猜测>` — 应战
+  • `/拒绝决斗 <发起者猫娘名字>` — 拒绝决斗
+  • `/决斗列表` — 查看收到的决斗邀请
+
+❓ 帮助
+  • `/你能做什么` — 显示本帮助信息
+
+💡 提示：所有猫娘关系通过用户 ID 绑定，体力每日重置，劳动大厅每小时刷新喵~"""
         yield event.plain_result(help_text)
 
     async def terminate(self):

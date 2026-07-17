@@ -2,12 +2,43 @@
   "DEFAULT_STAMINA": {
     "description": "猫娘体力上限，新创建及每日重置时的体力值",
     "type": "int",
-    "default": 100
+    "default": 1000
   },
   "LABOR_REFRESH_INTERVAL": {
     "description": "劳务大厅任务列表刷新间隔（秒）",
     "type": "int",
     "default": 3600
+  },
+  "LABOR_HALL_SIZE": {
+    "description": "劳务大厅每次刷新的任务条数",
+    "type": "int",
+    "default": 10
+  },
+  "LABOR_TASKS": {
+      "description": "劳务任务名称及对应emoji库",
+      "type": "list",
+      "default": [
+        {"name": "捕鱼", "emoji": "🐟"},
+        {"name": "抓老鼠", "emoji": "🐭"},
+        {"name": "看家", "emoji": "🏠"},
+        {"name": "种猫草", "emoji": "🌿"},
+        {"name": "陪玩", "emoji": "🎾"},
+        {"name": "巡逻", "emoji": "🚔"},
+        {"name": "带娃", "emoji": "👶"},
+        {"name": "跑腿", "emoji": "💨"},
+        {"name": "捉蝴蝶", "emoji": "🦋"},
+        {"name": "采蜂蜜", "emoji": "🍯"},
+        {"name": "打扫", "emoji": "🧹"},
+        {"name": "做饭", "emoji": "🍳"},
+        {"name": "写作业", "emoji": "📝"},
+        {"name": "打妖怪", "emoji": "👾"},
+        {"name": "修电器", "emoji": "🔧"},
+        {"name": "送快递", "emoji": "📦"},
+        {"name": "浇花", "emoji": "🌸"},
+        {"name": "搬砖", "emoji": "🧱"},
+        {"name": "铲屎", "emoji": "💩"},
+        {"name": "梳毛", "emoji": "🪥"}
+      ]
   },
   "INITIAL_MAOTIAO": {
     "description": "新创建猫娘时的初始猫条数量",
@@ -32,31 +63,31 @@
   "DUEL_GUESS_MAX": {
     "description": "决斗时猜测数字的最大值",
     "type": "int",
-    "default": 10
+    "default": 100
   },
   "MONGO_URI": {
     "description": "MongoDB 连接字符串",
-    "type": "str",
+    "type": "string",
     "default": "mongodb://localhost:27017"
   },
   "DB_NAME": {
     "description": "数据库名称",
-    "type": "str",
+    "type": "string",
     "default": "neko-han"
   },
   "NEKO_COLLECTION": {
     "description": "存储猫娘主数据的集合名",
-    "type": "str",
+    "type": "string",
     "default": "nekoes"
   },
   "LABOR_COLLECTION": {
     "description": "存储劳务大厅和进行中劳务的集合名",
-    "type": "str",
+    "type": "string",
     "default": "labor_hall"
   },
   "DUEL_COLLECTION": {
     "description": "存储决斗邀请的集合名",
-    "type": "str",
+    "type": "string",
     "default": "duel_invites"
   }
 }
