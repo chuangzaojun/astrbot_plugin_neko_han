@@ -3,7 +3,7 @@ from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api import logger
 
 class MarriageMixin:
-    """婚恋系统：求婚、接受求婚、离婚"""
+    """婚恋系统：求婚、接受求婚、离婚、求婚列表"""
 
     @filter.command("求婚")
     async def propose_marriage(self, event: AstrMessageEvent):
@@ -111,4 +111,36 @@ class MarriageMixin:
                 yield event.plain_result(f"{my_neko['neko_name']} 和 {partner_display} 离婚了喵～")
         except Exception as e:
             logger.error(f"/离婚 错误:\n{traceback.format_exc()}")
+            yield event.plain_result("喵～服务器好像出了一点小问题，等等再试试喵~")
+
+    @filter.command("求婚列表")
+    async def proposal_list(self, event: AstrMessageEvent):
+        """查看自己猫娘收到的所有求婚请求（类似决斗列表）"""
+        try:
+            user_id = event.get_sender_id()
+            my_neko = await self.get_neko(user_id)
+            if not my_neko:
+                yield event.plain_result("你还没有猫娘，请先创建一只喵～")
+                return
+
+            if my_neko.get("wife"):
+                yield event.plain_result(f"{my_neko['neko_name']} 已经结婚了，不能再查看求婚列表喵～")
+                return
+
+            proposals = await self.collection.find(
+                {"proposing_to": user_id}
+            ).to_list(length=100)
+
+            if not proposals:
+                yield event.plain_result(f"{my_neko['neko_name']} 目前没有收到任何求婚喵～")
+                return
+
+            lines = []
+            lines.append(f"💌 {my_neko['neko_name']} 的求婚列表：")
+            for p in proposals:
+                lines.append(f"  • 来自 {p['neko_name']} 的求婚（输入 `/接受求婚 {p['neko_name']}` 答应）")
+
+            yield event.plain_result("\n".join(lines))
+        except Exception as e:
+            logger.error(f"/求婚列表 错误:\n{traceback.format_exc()}")
             yield event.plain_result("喵～服务器好像出了一点小问题，等等再试试喵~")

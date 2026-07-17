@@ -30,7 +30,6 @@ class NekoHan(Star, BasicMixin, EconomyMixin, MarriageMixin, LaborMixin, DuelMix
             logger.error(f"数据库连接失败: {e}")
 
     async def get_neko(self, user_id: str):
-        """安全获取猫娘文档，无则返回 None"""
         return await self.collection.find_one({"user_id": user_id})
 
     async def reset_daily_stamina(self, user_id: str, neko_doc: dict = None):
@@ -71,7 +70,8 @@ class NekoHan(Star, BasicMixin, EconomyMixin, MarriageMixin, LaborMixin, DuelMix
             "💕 婚恋系统\n"
             "  • `/求婚 <猫娘名字>` — 让你的猫娘向其他猫娘求婚\n"
             "  • `/接受求婚 <猫娘名字>` — 接受对方的求婚\n"
-            "  • `/离婚` — 与当前配偶离婚\n\n"
+            "  • `/离婚` — 与当前配偶离婚\n"
+            "  • `/求婚列表` — 查看收到的求婚请求（类似决斗列表）\n\n"
             "⚔️ 决斗系统\n"
             "  • `/决斗 <猫娘名字> <赌注> <你的猜测>` — 向其他猫娘发起决斗\n"
             "  • `/接受决斗 <发起者猫娘名字> <你的猜测>` — 应战\n"

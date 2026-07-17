@@ -90,6 +90,7 @@ class BasicMixin:
 
     @filter.command("仪表盘")
     async def dashboard(self, event: AstrMessageEvent):
+        """仪表盘：基本信息、猫条、体力、婚恋状态（已婚/单身）及劳务，不显示求婚和决斗"""
         try:
             user_id = event.get_sender_id()
             my_neko = await self.get_neko(user_id)
@@ -112,43 +113,23 @@ class BasicMixin:
                 f"⚡ 体力：{stamina}/{DEFAULT_STAMINA}"
             ]
 
-            # 婚恋状态
+            # 婚恋状态（仅显示已婚或单身，无论是否有求婚或进行中的求婚）
             wife_uid = my_neko.get("wife")
             if wife_uid:
                 partner = await self.get_neko(wife_uid)
                 partner_name = partner["neko_name"] if partner else "未知猫娘"
                 status_lines.append(f"💍 已婚，配偶：{partner_name}")
             else:
-                proposing_to_uid = my_neko.get("proposing_to")
-                if proposing_to_uid:
-                    target = await self.get_neko(proposing_to_uid)
-                    target_name = target["neko_name"] if target else "未知猫娘"
-                    status_lines.append(f"💌 正在向 {target_name} 求婚")
-                else:
-                    status_lines.append("💔 单身")
-
-            # 决斗邀请
-            invites = await self.duel_collection.find(
-                {"target_uid": user_id, "status": "pending"}
-            ).to_list(length=10)
-            if invites:
-                status_lines.append("")
-                status_lines.append("⚔️ **收到的决斗邀请**")
-                for inv in invites:
-                    inviter = await self.get_neko(inv["inviter_uid"])
-                    inviter_name = inviter["neko_name"] if inviter else "未知猫娘"
-                    status_lines.append(
-                        f"来自 {inviter_name} 的挑战，赌注：{inv['bet']} 猫条 (输入 /接受决斗 {inviter_name} <你的猜测> 应战)"
-                    )
+                status_lines.append("💔 单身")
 
             # 劳务状态
-            status_lines.append("")
             await self.auto_complete_tasks(user_id)
             labor_tasks = await self.labor_collection.find(
                 {"worker_id": user_id, "status": "in_progress"}
             ).to_list(length=10)
 
             if labor_tasks:
+                status_lines.append("")
                 status_lines.append("🔧 **进行中的劳务**")
                 for i, t in enumerate(labor_tasks, 1):
                     emoji = t.get("emoji", "🐾")
@@ -168,6 +149,7 @@ class BasicMixin:
                     )
                 status_lines.append("（输入 /取消劳务 序号 可取消，体力不返还）")
             else:
+                status_lines.append("")
                 status_lines.append("🔧 当前无进行中的劳务（前往 /猫力资源市场 看看吧）")
 
             yield event.plain_result("\n".join(status_lines))
